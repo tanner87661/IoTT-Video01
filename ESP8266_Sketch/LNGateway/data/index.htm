@@ -1,0 +1,323 @@
+<!DOCTYPE HTML>
+<html>
+	
+    <script type="text/javascript">
+
+//{"IP":"192.168.87.102","SigStrength":-59,"MQTTServerIP":"192.168.87.52","MQTTPort":1883,"MQTTUser":"","MQTTPassword":"","lnBCTopic":"lnIn","lnOutTopic":"lnOut","useTimeStamp":1,"useNTP":1,"ntpTimeZone":-5,"useUpTime":1,"useMemory":1,"useLNStats":1,"mem":32720,"BytesReceived":1220,"BytesTransmitted":24,"LNLoadBps":0.32346,"LNLoad%":0.019408,"uptime":4582,"currenttime":1530903713}
+
+	  var InitialCall = true;
+	  var requestStr = "";
+	  var upTime;
+	  var systemTime = new Date();
+	  	
+	  function DisplayInitialData(JSONArray)
+	  {
+ 		  document.getElementById("newusetimestamp").checked = JSONArray.useTimeStamp == 1;
+ 		  document.getElementById("newusentpserver").checked = JSONArray.useNTP == 1;
+ 		  document.getElementById("newmqttserver").value = JSONArray.MQTTServerIP;
+ 		  document.getElementById("newmqttport").value = JSONArray.MQTTPort;
+ 		  document.getElementById("newmqttuser").value = JSONArray.MQTTUser;
+ 		  document.getElementById("newmqttpassword").value = JSONArray.MQTTPassword;
+ 		  document.getElementById("newlnbctopic").value = JSONArray.lnBCTopic;
+ 		  document.getElementById("newlnechotopic").value = JSONArray.lnEchoTopic;
+ 		  document.getElementById("newlnouttopic").value = JSONArray.lnOutTopic;
+ 		  document.getElementById("newtimezone").value = JSONArray.ntpTimeZone; 
+ 		  document.getElementById("newntpserver").value = JSONArray.NTPServer; 
+ 		  document.getElementById("newnetbiosname").value = JSONArray.NetBIOSName;
+ 		  document.getElementById("newusenetworkmode").checked = JSONArray.modeNetwork == 1;
+	  }	
+
+	  function DisplayUpdateData(JSONArray)
+	  {
+		  if (InitialCall)
+		  {
+			DisplayInitialData(JSONArray);
+			InitialCall = false;
+  		  }
+ 		  document.getElementById("myversion").innerHTML = JSONArray.SWVersion;
+ 		  document.getElementById("myip").innerHTML = JSONArray.IP;
+ 		  document.getElementById("sigstrength").innerHTML = JSONArray.SigStrength + " [dB]";
+ 		  upTime = JSONArray.uptime;
+ 		  displayUpTime();
+ 		  document.getElementById("usentpserver").innerHTML = JSONArray.useNTP == 1;
+ 		  var date = new Date(JSONArray.currenttime*1000);
+ 		  systemTime = date;
+ 		  document.getElementById("sysdatetime").innerHTML = systemTime;
+ 		  document.getElementById("timezone").innerHTML = JSONArray.ntpTimeZone;
+ 		  document.getElementById("ntpserver").innerHTML = JSONArray.NTPServer; 
+ 		  document.getElementById("sysmemory").innerHTML = JSONArray.mem + " [Bytes]";
+ 		  document.getElementById("netbiosname").innerHTML = JSONArray.NetBIOSName;
+
+ 		  document.getElementById("brec").innerHTML = JSONArray.BytesReceived + " [Bytes]";
+ 		  document.getElementById("bsent").innerHTML = JSONArray.BytesTransmitted + " [Bytes]";
+ 		  document.getElementById("lnload").innerHTML = Math.round(JSONArray.LNLoad100) + " [%]";
+ 		  document.getElementById("lndata").innerHTML = Math.round(JSONArray.LNLoadBps) + " [Bytes per Sec.]";
+
+ 		  document.getElementById("mqttserver").innerHTML = JSONArray.MQTTServerIP;
+ 		  document.getElementById("mqttport").innerHTML = JSONArray.MQTTPort;
+ 		  document.getElementById("mqttuser").innerHTML = JSONArray.MQTTUser;
+ 		  document.getElementById("mqttpassword").innerHTML = JSONArray.MQTTPassword;
+ 		  document.getElementById("lnbctopic").innerHTML = JSONArray.lnBCTopic;
+ 		  document.getElementById("lnechotopic").innerHTML = JSONArray.lnEchoTopic;
+ 		  document.getElementById("lnouttopic").innerHTML = JSONArray.lnOutTopic;
+ 		  document.getElementById("usetimestamp").innerHTML = JSONArray.useTimeStamp == 1;
+ 		  document.getElementById("usenetworkmode").innerHTML = JSONArray.modeNetwork == 1;
+
+	  }	
+
+	  function displayUpTime()
+	  {
+ 		  var days = Math.trunc(upTime/86400);
+ 		  var hours = Math.trunc(upTime/3600) % 24;
+ 		  var minutes = Math.trunc(upTime/60) % 60;
+ 		  var seconds = upTime % 60;
+ 		  document.getElementById("sysuptime").innerHTML = days + " Days, " + hours + " Hours, " + minutes + " Minutes, " + seconds + " Seconds";
+	  }
+	  
+	  function UpdateTimeDisplay()
+	  {
+		  upTime++;
+		  displayUpTime();
+//		  systemTime += 1000;
+		  systemTime.setSeconds(systemTime.getSeconds() + 1);
+		  document.getElementById("sysdatetime").innerHTML = systemTime;
+	  }
+	  	
+	  function GetGatewayData()
+	  {
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function()
+			{
+				if (this.readyState == 4) 
+				{
+					if (this.status == 200) 
+					{
+						var myArr = JSON.parse(this.responseText);
+						DisplayUpdateData(myArr);
+					}
+				}
+			}
+			request.open("GET", "ajax_inputs" + requestStr, true);
+			request.setRequestHeader('Cache-Control', 'no-cache');
+			request.send();
+			setTimeout('GetGatewayData()', 10000); //milliseconds
+			requestStr = "";
+		} //GetGatewayData
+
+	  function UpdateGatewayData() //Time Zone and NetBIOSName
+	  {
+		  requestStr = "&ntpTimeZone=" + document.getElementById("newtimezone").value;
+		  requestStr = "&NTPServer=" + document.getElementById("newntpserver").value;
+		  requestStr += "&NetBIOSName=" + document.getElementById("newnetbiosname").value;
+		  if (document.getElementById("newusentpserver").checked)
+			requestStr += "&useNTP=1";
+		  else
+			requestStr += "&useNTP=0";
+		  console.log(requestStr);
+	  }
+
+	  function ResetLNStats() //Reset Byte Counters
+	  {
+		  requestStr = "&ResetCtr";
+		  console.log(requestStr);
+	  }
+
+
+	  function UpdateMQTTData() //Update MQTT Settings
+	  {
+		  requestStr = "&MQTTServerIP=" + document.getElementById("newmqttserver").value;
+		  requestStr += "&MQTTPort=" + document.getElementById("newmqttport").value;
+		  requestStr += "&MQTTUser=" + document.getElementById("newmqttuser").value;
+		  requestStr += "&MQTTPassword=" + document.getElementById("newmqttpassword").value;
+		  requestStr += "&lnBCTopic=" + document.getElementById("newlnbctopic").value;
+		  requestStr += "&lnEchoTopic=" + document.getElementById("newlnechotopic").value;
+		  requestStr += "&lnOutTopic=" + document.getElementById("newlnouttopic").value;
+		  if (document.getElementById("newusetimestamp").checked)
+		    requestStr += "&useTimeStamp=1";
+		  else
+		    requestStr += "&useTimeStamp=0";
+		  if (document.getElementById("newusenetworkmode").checked)
+		    requestStr += "&modeNetwork=1";
+		  else
+		    requestStr += "&modeNetwork=0";
+		  console.log(requestStr);
+	  }
+	  
+	</script>
+
+
+
+<head>  
+    <meta charset="utf-8" />
+    <title>Config LN Gateway</title>
+</head> 
+
+<body onload="GetGatewayData()"; background="Nickel.jpg">
+   <div id="temp_divf1" style="float: left; width: 100%; height: 100%;">
+   <div id="temp_divf2" style="float: left; width: 5%; height: 100%;">&nbsp;</div>
+   <div id="temp_divf3" style="float: left; width: 95%; height: 100%;">
+   <div id="temp_div0" style="float: left; width: 80%; background: whitesmoke;  padding:20px">
+	   <font size="36"><strong>LocoNet to MQTT Gateway</strong></font>
+   </div>
+	   
+   <div id="temp_div0" style="float: left; width: 80%; background: white;  padding:20px">
+		<h1>Gateway Statistics:</h1>
+		<table>
+			<tbody>
+				<tr>
+					<td width=150px><b>Element</b></td>
+					<td width=200px><b>Value</b></td>
+					<td width=200px><b>Enter new Value</b></td>
+					<td width=100px><b>Action</b></td>
+				</tr>
+				<tr>
+					<td>Gateway Version Nr.</td>
+					<td Id="myversion"></td>
+				</tr>
+				<tr>
+					<td>Gateway IP</td>
+					<td Id="myip"></td>
+				</tr>
+				<tr>
+					<td>Signal Strength</td>
+					<td Id="sigstrength"></td>
+				</tr>
+				<tr>
+					<td>System Uptime</td>
+					<td Id = "sysuptime"></td>
+				</tr>
+				<tr>
+					<td>Use NTP Time Server</td>
+					<td Id="usentpserver"></td>
+					<td><input  Id="newusentpserver" type="checkbox" /></td>
+				</tr>
+				<tr>
+					<td>NTP Server</td>
+					<td Id="ntpserver"></td>
+					<td><input Id="newntpserver" type="text" /></td>
+				</tr>
+				<tr>
+					<td>Time Zone</td>
+					<td Id="timezone"></td>
+					<td><input Id="newtimezone" type="text" /></td>
+				</tr>
+				<tr>
+					<td>System Date/Time</td>
+					<td Id="sysdatetime"></td>
+				</tr>
+				<tr>
+					<td>Free Memory</td>
+					<td Id="sysmemory"></td>
+				</tr>
+				<tr>
+					<td>Net BIOS Name</td>
+					<td Id="netbiosname"></td>
+					<td><input Id="newnetbiosname" type="text" /></td>
+					<td><button type="button" onclick="UpdateGatewayData()">Save All</button></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+    <div id="temp_div1" style="float: left; width: 80%; background: whitesmoke; padding:20px">
+		<h1>LocoNet Statistics:</h1>
+		<table>
+			<tbody>
+				<tr>
+					<td width=150px><b>Element</b></td>
+					<td width=200px><b>Value</b></td>
+					<td width=100px><b>Action</b></td>
+				</tr>
+				<tr>
+					<td>Bytes Received</td>
+					<td Id="brec"></td>
+				</tr>
+				<tr>
+					<td>Bytes Sent</td>
+					<td Id="bsent"></td>
+				</tr>
+				<tr>
+					<td>Last 20 Sec. Network Load</td>
+					<td Id="lnload"></td>
+				</tr>
+				<tr>
+					<td>Last 20 Sec. Network Data</td>
+					<td Id="lndata"></td>
+					<td><button type="button" onclick="ResetLNStats()">Reset Statistics</button></td>
+				</tr>
+			</tbody>
+		</table>
+		<p>&nbsp;</p>
+	</div>
+
+    <div id="temp_div2" style="float: left; width: 80%; background: white; padding:20px">
+		<h1>MQTT Server Settings:</h1>
+		<table>
+			<tbody>
+				<tr>
+					<td width=150px><b>Element</b></td>
+					<td width=200px><b>Value</b></td>
+					<td width=200px><b>Enter new Value</b></td>
+					<td width=100px><b>Action</b></td>
+				</tr>
+				<tr>
+					<td>Server IP</td>
+					<td Id="mqttserver"></td>
+					<td><input Id="newmqttserver" type="text" /></td>
+				</tr>
+				<tr>
+					<td>Port</td>
+					<td Id="mqttport"></td>
+					<td><input Id="newmqttport" type="text" /></td>
+				</tr>
+				<tr>
+					<td>User Name</td>
+					<td Id="mqttuser"></td>
+					<td><input Id="newmqttuser" type="text" /></td>
+				</tr>
+				<tr>
+					<td>Password</td>
+					<td Id="mqttpassword"></td>
+					<td><input Id="newmqttpassword" type="text" /></td>
+				</tr>
+				<tr>
+					<td>Network Mode</td>
+					<td Id="usenetworkmode"></td>
+					<td><input  Id="newusenetworkmode" type="checkbox" /></td>
+				</tr>
+				<tr>
+					<td>Add Time Stamp</td>
+					<td Id="usetimestamp"></td>
+					<td><input  Id="newusetimestamp" type="checkbox" /></td>
+				</tr>
+				<tr>
+					<td>LocoNet Broadcast Topic</td>
+					<td Id="lnbctopic"></td>
+					<td><input Id="newlnbctopic" type="text" /></td>
+				</tr>
+				<tr>
+					<td>LocoNet Echo Topic</td>
+					<td Id="lnechotopic"></td>
+					<td><input Id="newlnechotopic" type="text" /></td>
+				</tr>
+				<tr>
+					<td>LocoNet Out Topic</td>
+					<td Id="lnouttopic"></td>
+					<td><input Id="newlnouttopic" type="text" /></td>
+					<td><button type="button" onclick="UpdateMQTTData()">Save All</button></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+       <div id="temp_div0" style="float: left; width: 80%; background: white;  padding:20px">
+			<p><font size="2">IoTT Internet of Toy Trains (c) 2018 Hans Tanner</font></p>
+			<p><font size="2"><a href="upload.htm">upload</a></font></p>
+	   </div>
+	</div>
+	</div>
+</body>
+<script>
+	setInterval(UpdateTimeDisplay, 1000);
+</script>
+
+</html>
